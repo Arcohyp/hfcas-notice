@@ -8,11 +8,12 @@
 """
 
 import argparse
+from html import unescape
 import json
 import logging
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -26,6 +27,7 @@ STATE_PATH = BASE_DIR / "data" / "seen.json"
 # 页面格式：hf = hf.cas.cn 静态列表；ustc = gradschool.ustc.edu.cn /article/ 列表
 CHANNELS = {
     "合肥物质院 · 通知公告": ("https://hf.cas.cn/sbpy/yjsc/tzgg/", "hf"),
+    "合肥物质院 · 奖助学金": ("https://hf.cas.cn/sbpy/yjsc/py_1/jzxj/", "hf"),
     "合肥物质院 · 公示公开": ("https://hf.cas.cn/sbpy/yjsc/gsgk/", "hf"),
     "合肥物质院 · 毕业离校": ("https://hf.cas.cn/sbpy/yjsc/rcgl/rcgl_bylx/", "hf"),
     "合肥物质院 · 学籍管理": ("https://hf.cas.cn/sbpy/yjsc/py_1/xjgl/", "hf"),
@@ -76,7 +78,7 @@ def parse_hf(html: str, page_url: str) -> list[dict]:
         dm = HF_DATE_RE.search(html, m.end(), m.end() + 400)
         items.append({
             "url": urljoin(page_url, m.group(1)),
-            "title": m.group(2).strip(),
+            "title": unescape(m.group(2)).strip(),
             "date": dm.group(0) if dm else "",
         })
     return items
@@ -86,7 +88,7 @@ def parse_ustc(html: str, page_url: str) -> list[dict]:
     return [
         {
             "url": urljoin(page_url, f"/article/{m.group(1)}"),
-            "title": m.group(2).strip(),
+            "title": unescape(m.group(2)).strip(),
             "date": m.group(3),
         }
         for m in USTC_ITEM_RE.finditer(html)
@@ -99,7 +101,7 @@ def parse_aiofm(html: str, page_url: str) -> list[dict]:
         dm = AIOFM_DATE_RE.search(html, m.end(), m.end() + 400)
         items.append({
             "url": urljoin(page_url, m.group(1)),
-            "title": m.group(2).strip(),
+            "title": unescape(m.group(2)).strip(),
             "date": dm.group(0).replace(".", "-") if dm else "",
         })
     return items
@@ -146,9 +148,10 @@ def main() -> None:
             logger.error("抓取最终失败，本频道跳过: %s", name)
             continue
         if not already_tracked:
-            # 首次纳入监控：收录既有条目为基线，不推送
+            # 首次纳入监控：收录既有条目为基线；最近 7 天内的条目仍推送（大概率还在有效期内）
             seeded.append((name, len(items)))
-            fresh = []
+            cutoff = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+            fresh = [it for it in items if it["date"] >= cutoff]
         else:
             fresh = [it for it in items if it["url"] not in seen]
         for it in items:
@@ -169,11 +172,19 @@ def main() -> None:
     save_state(state)
 
     if seeded:
-        content = "以下栏目已纳入监控，既有条目已收录、不重复提醒：\n\n" + "\n".join(
+        lines = ["以下栏目已纳入监控，既有条目已收录、不重复提醒："]
+        lines += [
             f"- [{name}]({CHANNELS[name][0]})（收录 {n} 条）" for name, n in seeded
-        )
-        logger.info("新纳入 %d 个频道，推送扩展通知", len(seeded))
-        send_dingtalk("通知监控范围已扩展", content)
+        ]
+        recent = {n: f for n, f in new_by_channel.items() if f}
+        if recent:
+            lines.append("\n**收录时发现近期条目（可能仍在有效期内）：**")
+            for name, fresh in recent.items():
+                for it in fresh:
+                    lines.append(f"- [{it['title']}]({it['url']})  `{it['date']}`")
+        logger.info("新纳入 %d 个频道，推送扩展通知（含 %d 条近期条目）",
+                    len(seeded), sum(len(v) for v in recent.values()))
+        send_dingtalk("通知监控范围已扩展", "\n".join(lines))
         return
 
     total = sum(len(v) for v in new_by_channel.values())
