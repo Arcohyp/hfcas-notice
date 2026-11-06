@@ -29,10 +29,13 @@ CHANNELS = {
     "合肥物质院 · 通知公告": ("https://hf.cas.cn/sbpy/yjsc/tzgg/", "hf"),
     "合肥物质院 · 奖助学金": ("https://hf.cas.cn/sbpy/yjsc/py_1/jzxj/", "hf"),
     "合肥物质院 · 公示公开": ("https://hf.cas.cn/sbpy/yjsc/gsgk/", "hf"),
+    "合肥物质院 · 学位": ("https://hf.cas.cn/sbpy/yjsc/xw_1/xwsy/", "hf"),
     "合肥物质院 · 毕业离校": ("https://hf.cas.cn/sbpy/yjsc/rcgl/rcgl_bylx/", "hf"),
     "合肥物质院 · 学籍管理": ("https://hf.cas.cn/sbpy/yjsc/py_1/xjgl/", "hf"),
     "合肥物质院 · 开题考核": ("https://hf.cas.cn/sbpy/yjsc/py_1/ktzq/", "hf"),
     "合肥物质院 · 项目申报": ("https://hf.cas.cn/sbpy/yjsc/py_1/xmsb/", "hf"),
+    "合肥物质院 · 课程安排": ("https://hf.cas.cn/sbpy/yjsc/py_1/kcap/", "hf"),
+    "合肥物质院 · 就业信息": ("https://hf.cas.cn/sbpy/yjsc/jyxx_1/", "hf"),
     "中科大研究生院 · 通知公告": ("https://gradschool.ustc.edu.cn/column/9", "ustc"),
     "安光所 · 通知公告": ("https://aiofm.cas.cn/2022anguangsuo9/2022_xwzhongxin/2022_tzgonggao/", "aiofm"),
 }
